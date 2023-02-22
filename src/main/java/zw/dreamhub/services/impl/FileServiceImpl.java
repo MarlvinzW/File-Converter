@@ -1,6 +1,7 @@
 package zw.dreamhub.services.impl;
 
 import com.aspose.cells.Workbook;
+import com.opencsv.CSVReader;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatus;
@@ -11,8 +12,12 @@ import zw.dreamhub.domain.dto.request.FileUploaderRequest;
 import zw.dreamhub.services.FileService;
 
 import java.io.File;
+import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -30,19 +35,13 @@ public class FileServiceImpl implements FileService {
     private static final String MEDIA_DIR = "media";
 
     @Override
-    public ResponseEntity<?> convertCsvToExcel(FileUploaderRequest request) {
+    public ResponseEntity<Object> convertCsvToExcel(FileUploaderRequest request) {
 
         // validate for
         if (Objects.equals(request.file().getContentType(), XLS_FORMAT)) {
 
             // media path
-            String mediaPath = HOME_DIR + File.separator + MEDIA_DIR;
-
-            // destination creation
-            File storage = new File(mediaPath);
-            if (!storage.exists()) {
-                storage.mkdirs();
-            }
+            String mediaPath = getMediaDir();
 
             // xlsx file name
             String filePath = mediaPath + File.separator + request.file().getOriginalFilename();
@@ -77,7 +76,7 @@ public class FileServiceImpl implements FileService {
             }
             // file exception
             catch (Exception e) {
-                log.info("File Exception: {}", e.getMessage());
+                log.info("File Conversion Exception : {}", e.getMessage());
                 return ResponseEntity
                         .badRequest()
                         .build();
@@ -90,5 +89,66 @@ public class FileServiceImpl implements FileService {
                     .build();
         }
 
+    }
+
+    @Override
+    public ResponseEntity<List<List<String>>> readCsvFile(FileUploaderRequest request) {
+
+        // validate for
+        if (Objects.equals(request.file().getContentType(), CSV_FORMAT)) {
+
+            try {
+
+                // media path
+                String mediaPath = getMediaDir();
+
+                // xlsx file name
+                String filePath = mediaPath + File.separator + request.file().getOriginalFilename();
+                File file = new File(filePath);
+
+                // save csv file to media directory
+                request.file().transferTo(file);
+
+                // csv data
+                List<List<String>> records = new ArrayList<>();
+                // read data
+                try (CSVReader csvReader = new CSVReader(new FileReader(file))) {
+                    String[] values;
+                    while ((values = csvReader.readNext()) != null) {
+                        records.add(Arrays.asList(values));
+                    }
+                }
+                // response
+                return ResponseEntity.ok(records);
+            }
+            // file exception
+            catch (Exception e) {
+                log.info("File Reading Exception : {}", e.getMessage());
+                return ResponseEntity
+                        .badRequest()
+                        .build();
+            }
+
+        }
+        // invalid file formats
+        else {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_ACCEPTABLE)
+                    .build();
+        }
+    }
+
+    private String getMediaDir() {
+        // media path
+        String mediaPath = HOME_DIR + File.separator + MEDIA_DIR;
+
+        // destination creation
+        File storage = new File(mediaPath);
+        if (!storage.exists()) {
+            storage.mkdirs();
+        }
+
+        // return media path
+        return mediaPath;
     }
 }

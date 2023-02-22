@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 import zw.dreamhub.domain.dto.request.FileUploaderRequest;
 import zw.dreamhub.services.FileService;
 
+import java.util.List;
+
 /**
  * @author Marlvin Chihota
  * Email marlvinchihota@gmail.com
@@ -25,7 +27,12 @@ public class FileController {
     private final FileService fileService;
 
     @PostMapping(value = "excelToCsv", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    ResponseEntity<?> convertCsvToExcel(@Valid @ModelAttribute FileUploaderRequest request) {
+    ResponseEntity<Object> convertCsvToExcel(@Valid @ModelAttribute FileUploaderRequest request) {
         return fileService.convertCsvToExcel(request);
+    }
+
+    @PostMapping(value = "readCsv", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    ResponseEntity<List<List<String>>> readCsvFile(@Valid @ModelAttribute FileUploaderRequest request) {
+        return fileService.readCsvFile(request);
     }
 }
